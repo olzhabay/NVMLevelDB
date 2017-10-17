@@ -3,16 +3,6 @@ cmake_minimum_required(VERSION 3.7)
 project(leveldb CXX)
 set(CMAKE_DEBUG_POSTFIX "d")
 
-#set(Boost_USE_STATIC_LIBS ON)
-#set(Boost_USE_MULTITHREAD ON)
-#set(Boost_USE_STATIC_RUNTIME OFF)
-
-#find_package(Boost COMPONENTS
-#        date_time
-#        filesystem
-#        system
-#        REQUIRED)
-
 set(SNAPPY_LIBRARY "")
 
 string(REGEX MATCH "clang" CLANG ${CMAKE_CXX_COMPILER})
@@ -50,7 +40,6 @@ endif()
 add_definitions(-DLEVELDB_ATOMIC_PRESENT)
 add_definitions(-DOS_LINUX)
 add_definitions(-DLEVELDB_PLATFORM_POSIX)
-#add_definitions(-DQUARTZ)
 add_definitions(-fno-builtin-memcmp)
 
 set(LEVEL_DB_FILES
@@ -161,49 +150,18 @@ else()
 endif()
 
 add_library(leveldb ${LEVEL_DB_FILES})
-#include(ExternalProject)
-
-#ExternalProject_Add(
-#        quartz
-#        GIT_REPOSITORY "https://github.com/HewlettPackard/quartz.git"
-#        GIT_TAG "master"
-#        UPDATE_COMMAND ""
-#        INSTALL_COMMAND ""
-#)
-
 
 target_include_directories(leveldb
         PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
         PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
         )
 
-#add_library(nvmemul SHARED IMPORTED)
-#set_property(TARGET nvmemul PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/quartz/build/src/lib/libnvmemul.so)
-
-#include_directories(quartz/src/lib)
-#link_directories(quartz/src/lib)
-#target_include_directories(leveldb PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/quartz/src/include/)
-
-#add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/quartz/src/lib)
-
 target_link_libraries(leveldb
         PRIVATE
         ${Boost_LIBRARIES}
         ${Pthread_LIBRARY}
-#        nvmemul
         )
-#target_link_libraries(leveldb PUBLIC nvmemul)
-
 add_executable(leveldbmain main.cc)
 
 target_link_libraries(leveldbmain PUBLIC leveldb)
-
-#set_target_properties(leveldbutil PROPERTIES
-#        DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
-
-# we distribute the leveldbutil as it might be useful
-#install(TARGETS leveldbutil
-#        RUNTIME DESTINATION bin
-#        LIBRARY DESTINATION lib
-#        ARCHIVE DESTINATION lib)
 
