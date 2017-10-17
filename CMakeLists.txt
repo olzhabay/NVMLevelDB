@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.7)
 
-project(leveldb CXX)
+project(NVMleveldb CXX)
 set(CMAKE_DEBUG_POSTFIX "d")
 
 set(SNAPPY_LIBRARY "")

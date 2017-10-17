@@ -16,7 +16,7 @@ Arena::Arena() : memory_usage_(0) {
 
 Arena::~Arena() {
   for (size_t i = 0; i < blocks_.size(); i++) {
-    delete[] blocks_[i]
+    delete[] blocks_[i];
   }
 }
 
