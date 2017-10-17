@@ -51,7 +51,7 @@ void sst_db_test() {
   }
   clock_gettime(CLOCK_MONOTONIC, &end);
   int64_t elapsed = (end.tv_sec - start.tv_sec)*1000000000 + (end.tv_nsec - start.tv_nsec);
-  std::cout << elapsed/1000 << "\tusec\t" << (uint64_t)(1000000*(numData/(elapsed/1000.0))) << "\tOps/sec\tInsertion" << endl;
+  std::cout << elapsed/1000 << "\tusec\t" << (uint64_t)(1000000*(numData/(elapsed/1000.0))) << "\tOps/sec\tInsertion" << std::endl;
 
   clock_gettime(CLOCK_MONOTONIC, &start);
   for (auto i = 0; i < numData; i++) {
@@ -62,7 +62,7 @@ void sst_db_test() {
   }
   clock_gettime(CLOCK_MONOTONIC, &end);
   elapsed = (end.tv_sec - start.tv_sec)*1000000000 + (end.tv_nsec - start.tv_nsec);
-  std::cout << elapsed/1000 << "\tusec\t" << (uint64_t)(1000000*(numData/(elapsed/1000.0))) << "\tOps/sec\tRead" << endl;
+  std::cout << elapsed/1000 << "\tusec\t" << (uint64_t)(1000000*(numData/(elapsed/1000.0))) << "\tOps/sec\tRead" << std::endl;
 }
 
 int main(int argc, char** argv) {
