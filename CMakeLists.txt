@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.7)
+cmake_minimum_required(VERSION 2.8)
 
 project(NVMleveldb CXX)
 set(CMAKE_DEBUG_POSTFIX "d")
@@ -33,7 +33,7 @@ if(MSVC)
 else()
     add_compile_options(
             -Wno-sign-compare
-            -std=c++14
+            -std=c++11
     )
 endif()
 
@@ -161,6 +161,11 @@ target_link_libraries(leveldb
         ${Boost_LIBRARIES}
         ${Pthread_LIBRARY}
         )
+
+set_target_properties(leveldb PROPERTIES PUBLIC_HEADER "include/leveldb/c.h;include/leveldb/cache.h;include/leveldb/comparator.h;include/leveldb/db.h;include/leveldb/dumpfile.h;include/leveldb/env.h;include/leveldb/iterator.h;include/leveldb/filter_policy.h;include/leveldb/iterator.h;include/leveldb/options.h;include/leveldb/slice.h;include/leveldb/status.h;include/leveldb/table.h;include/leveldb/table_builder.h;include/leveldb/write_batch.h;include/leveldb/global_index.h")
+
+INSTALL(TARGETS leveldb ARCHIVE DESTINATION /usr/local/lib PUBLIC_HEADER DESTINATION /usr/local/include/leveldb)
+
 add_executable(leveldbmain main.cc)
 
 target_link_libraries(leveldbmain PUBLIC leveldb)
