@@ -127,11 +127,7 @@ set(LEVEL_DB_FILES
         util/status.cc
         util/persist.h
         port/port.h
-        port/atomic_pointer.h
-        db/nvm_btree.cc
-        db/nvm_btree.h
-        db/logger.cc
-        db/logger.h)
+        port/atomic_pointer.h)
 
 if(WIN32)
     list(APPEND LEVEL_DB_FILES
