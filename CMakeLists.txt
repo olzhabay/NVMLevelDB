@@ -58,6 +58,7 @@ set(LEVEL_DB_FILES
         include/leveldb/table.h
         include/leveldb/table_builder.h
         include/leveldb/write_batch.h
+        include/leveldb/export.h
         db/c.cc
         db/builder.cc
         db/builder.h
@@ -140,7 +141,6 @@ else()
     list(APPEND LEVEL_DB_FILES
             port/port_posix.h
             port/port_posix.cc
-            port/port_posix_sse.cc
             util/posix_logger.h
             util/env_posix.cc)
 endif()
@@ -158,7 +158,7 @@ target_link_libraries(leveldb
         ${Pthread_LIBRARY}
         )
 
-set_target_properties(leveldb PROPERTIES PUBLIC_HEADER "include/leveldb/c.h;include/leveldb/cache.h;include/leveldb/comparator.h;include/leveldb/db.h;include/leveldb/dumpfile.h;include/leveldb/env.h;include/leveldb/iterator.h;include/leveldb/filter_policy.h;include/leveldb/iterator.h;include/leveldb/options.h;include/leveldb/slice.h;include/leveldb/status.h;include/leveldb/table.h;include/leveldb/table_builder.h;include/leveldb/write_batch.h;")
+set_target_properties(leveldb PROPERTIES PUBLIC_HEADER "include/leveldb/c.h;include/leveldb/cache.h;include/leveldb/comparator.h;include/leveldb/db.h;include/leveldb/dumpfile.h;include/leveldb/env.h;include/leveldb/iterator.h;include/leveldb/filter_policy.h;include/leveldb/iterator.h;include/leveldb/options.h;include/leveldb/slice.h;include/leveldb/status.h;include/leveldb/table.h;include/leveldb/table_builder.h;include/leveldb/write_batch.h;include/leveldb/export.h;")
 
 INSTALL(TARGETS leveldb ARCHIVE DESTINATION /usr/local/lib PUBLIC_HEADER DESTINATION /usr/local/include/leveldb)
 
