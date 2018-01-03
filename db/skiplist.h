@@ -32,6 +32,7 @@
 #include "port/port.h"
 #include "util/arena.h"
 #include "util/random.h"
+#include "util/persist.h"
 
 namespace leveldb {
 

@@ -17,7 +17,6 @@
 #include "table/two_level_iterator.h"
 #include "util/coding.h"
 #include "util/logging.h"
-#include "mock_log.h"
 
 namespace leveldb {
 
@@ -647,7 +646,7 @@ class VersionSet::Builder {
       std::vector<FileMetaData*> to_unref;
       to_unref.reserve(added->size());
       for (FileSet::const_iterator it = added->begin();
-          it != added->end(); ++it) {
+           it != added->end(); ++it) {
         to_unref.push_back(*it);
       }
       delete added;
@@ -725,7 +724,7 @@ class VersionSet::Builder {
            ++added_iter) {
         // Add all smaller files listed in base_
         for (std::vector<FileMetaData*>::const_iterator bpos
-                 = std::upper_bound(base_iter, base_end, *added_iter, cmp);
+            = std::upper_bound(base_iter, base_end, *added_iter, cmp);
              base_iter != bpos;
              ++base_iter) {
           MaybeAddFile(v, level, *base_iter);
@@ -853,7 +852,7 @@ Status VersionSet::LogAndApply(VersionEdit* edit, port::Mutex* mu) {
     edit->SetNextFile(next_file_number_);
     s = env_->NewWritableFile(new_manifest_file, &descriptor_file_);
     if (s.ok()) {
-      descriptor_log_ = new log::MockWriter(descriptor_file_);
+      descriptor_log_ = new log::Writer(descriptor_file_);
       s = WriteSnapshot(descriptor_log_);
     }
   }
@@ -928,7 +927,7 @@ Status VersionSet::Recover(bool *save_manifest) {
   if (!s.ok()) {
     if (s.IsNotFound()) {
       return Status::Corruption(
-            "CURRENT points to a non-existent file", s.ToString());
+          "CURRENT points to a non-existent file", s.ToString());
     }
     return s;
   }
@@ -949,8 +948,7 @@ Status VersionSet::Recover(bool *save_manifest) {
     log::Reader reader(file, &reporter, true/*checksum*/, 0/*initial_offset*/);
     Slice record;
     std::string scratch;
-    bool tmp = true;
-    while (tmp || (reader.ReadRecord(&record, &scratch) && s.ok())) {
+    while (reader.ReadRecord(&record, &scratch) && s.ok()) {
       VersionEdit edit;
       s = edit.DecodeFrom(record);
       if (s.ok()) {
@@ -961,11 +959,6 @@ Status VersionSet::Recover(bool *save_manifest) {
               icmp_.user_comparator()->Name());
         }
       }
-      // dirty, but it's ok
-      edit.has_log_number_ = true;
-      edit.has_last_sequence_ = true;
-      edit.has_next_file_number_ = true;
-      edit.next_file_number_ = 1;
 
       if (s.ok()) {
         builder.Apply(&edit);
@@ -990,7 +983,6 @@ Status VersionSet::Recover(bool *save_manifest) {
         last_sequence = edit.last_sequence_;
         have_last_sequence = true;
       }
-      tmp = false;
     }
   }
   delete file;
@@ -1062,7 +1054,7 @@ bool VersionSet::ReuseManifest(const std::string& dscname,
   }
 
   Log(options_->info_log, "Reusing MANIFEST %s\n", dscname.c_str());
-  descriptor_log_ = new log::MockWriter(descriptor_file_, manifest_size);
+  descriptor_log_ = new log::Writer(descriptor_file_, manifest_size);
   manifest_file_number_ = manifest_number;
   return true;
 }
@@ -1093,7 +1085,7 @@ void VersionSet::Finalize(Version* v) {
       // setting, or very high compression ratios, or lots of
       // overwrites/deletions).
       score = v->files_[level].size() /
-          static_cast<double>(config::kL0_CompactionTrigger);
+              static_cast<double>(config::kL0_CompactionTrigger);
     } else {
       // Compute the ratio of current size to size limit.
       const uint64_t level_bytes = TotalFileSize(v->files_[level]);
@@ -1375,7 +1367,7 @@ void VersionSet::SetupOtherInputs(Compaction* c) {
     const int64_t expanded0_size = TotalFileSize(expanded0);
     if (expanded0.size() > c->inputs_[0].size() &&
         inputs1_size + expanded0_size <
-            ExpandedCompactionByteSizeLimit(options_)) {
+        ExpandedCompactionByteSizeLimit(options_)) {
       InternalKey new_start, new_limit;
       GetRange(expanded0, &new_start, &new_limit);
       std::vector<FileMetaData*> expanded1;
@@ -1475,7 +1467,7 @@ bool Compaction::IsTrivialMove() const {
   // a very expensive merge later on.
   return (num_input_files(0) == 1 && num_input_files(1) == 0 &&
           TotalFileSize(grandparents_) <=
-              MaxGrandParentOverlapBytes(vset->options_));
+          MaxGrandParentOverlapBytes(vset->options_));
 }
 
 void Compaction::AddInputDeletions(VersionEdit* edit) {
@@ -1512,8 +1504,8 @@ bool Compaction::ShouldStopBefore(const Slice& internal_key) {
   // Scan to find earliest grandparent file that contains key.
   const InternalKeyComparator* icmp = &vset->icmp_;
   while (grandparent_index_ < grandparents_.size() &&
-      icmp->Compare(internal_key,
-                    grandparents_[grandparent_index_]->largest.Encode()) > 0) {
+         icmp->Compare(internal_key,
+                       grandparents_[grandparent_index_]->largest.Encode()) > 0) {
     if (seen_key_) {
       overlapped_bytes_ += grandparents_[grandparent_index_]->file_size;
     }

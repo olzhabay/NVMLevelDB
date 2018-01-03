@@ -32,7 +32,6 @@
 #include "util/coding.h"
 #include "util/logging.h"
 #include "util/mutexlock.h"
-#include "mock_log.h"
 
 namespace leveldb {
 
@@ -150,6 +149,10 @@ DBImpl::~DBImpl() {
   // Wait for background work to finish
   mutex_.Lock();
   shutting_down_.Release_Store(this);  // Any non-NULL value is ok
+  // maybe push memory buffer(s) to disk if recovery log disabled
+  if (options_.disable_recovery_log)
+    CompactMemTableSynchronous();
+
   while (bg_compaction_scheduled_) {
     bg_cv_.Wait();
   }
@@ -189,7 +192,7 @@ Status DBImpl::NewDB() {
     return s;
   }
   {
-    log::MockWriter log(file);
+    log::Writer log(file);
     std::string record;
     new_db.EncodeTo(&record);
     s = log.AddRecord(record);
@@ -400,7 +403,7 @@ Status DBImpl::RecoverLogFile(uint64_t log_number, bool last_log,
   // paranoid_checks==false so that corruptions cause entire commits
   // to be skipped instead of propagating bad information (like overly
   // large sequence numbers).
-  log::MockReader reader(file, &reporter, true/*checksum*/,
+  log::Reader reader(file, &reporter, true/*checksum*/,
                      0/*initial_offset*/);
   Log(options_.info_log, "Recovering log #%llu",
       (unsigned long long) log_number);
@@ -453,7 +456,8 @@ Status DBImpl::RecoverLogFile(uint64_t log_number, bool last_log,
   delete file;
 
   // See if we should keep reusing the last log file.
-  if (status.ok() && options_.reuse_logs && last_log && compactions == 0) {
+  if (status.ok() && options_.reuse_logs && last_log && compactions == 0 &&
+      !options_.disable_recovery_log) {
     assert(logfile_ == NULL);
     assert(log_ == NULL);
     assert(mem_ == NULL);
@@ -461,7 +465,7 @@ Status DBImpl::RecoverLogFile(uint64_t log_number, bool last_log,
     if (env_->GetFileSize(fname, &lfile_size).ok() &&
         env_->NewAppendableFile(fname, &logfile_).ok()) {
       Log(options_.info_log, "Reusing old log %s \n", fname.c_str());
-      log_ = new log::MockWriter(logfile_, lfile_size);
+      log_ = new log::Writer(logfile_, lfile_size);
       logfile_number_ = log_number;
       if (mem != NULL) {
         mem_ = mem;
@@ -620,6 +624,22 @@ void DBImpl::TEST_CompactRange(int level, const Slice* begin,const Slice* end) {
 }
 
 Status DBImpl::TEST_CompactMemTable() {
+  // NULL batch means just wait for earlier writes to be done
+  Status s = Write(WriteOptions(), NULL);
+  if (s.ok()) {
+    // Wait until the compaction completes
+    MutexLock l(&mutex_);
+    while (imm_ != NULL && bg_error_.ok()) {
+      bg_cv_.Wait();
+    }
+    if (imm_ != NULL) {
+      s = bg_error_;
+    }
+  }
+  return s;
+}
+
+Status DBImpl::CompactMemTableSynchronous() {
   // NULL batch means just wait for earlier writes to be done
   Status s = Write(WriteOptions(), NULL);
   if (s.ok()) {
@@ -1222,12 +1242,14 @@ Status DBImpl::Write(const WriteOptions& options, WriteBatch* my_batch) {
     // into mem_.
     {
       mutex_.Unlock();
-      status = log_->AddRecord(WriteBatchInternal::Contents(updates));
       bool sync_error = false;
-      if (status.ok() && options.sync) {
-        status = logfile_->Sync();
-        if (!status.ok()) {
-          sync_error = true;
+      if (!options_.disable_recovery_log) {
+        status = log_->AddRecord(WriteBatchInternal::Contents(updates));
+        if (status.ok() && options.sync) {
+          status = logfile_->Sync();
+          if (!status.ok()) {
+            sync_error = true;
+          }
         }
       }
       if (status.ok()) {
@@ -1354,20 +1376,22 @@ Status DBImpl::MakeRoomForWrite(bool force) {
       bg_cv_.Wait();
     } else {
       // Attempt to switch to a new memtable and trigger compaction of old
-      assert(versions_->PrevLogNumber() == 0);
-      uint64_t new_log_number = versions_->NewFileNumber();
-      WritableFile* lfile = NULL;
-      s = env_->NewWritableFile(LogFileName(dbname_, new_log_number), &lfile);
-      if (!s.ok()) {
-        // Avoid chewing through file number space in a tight loop.
-        versions_->ReuseFileNumber(new_log_number);
-        break;
+      if (!options_.disable_recovery_log) {
+        assert(versions_->PrevLogNumber() == 0);
+        uint64_t new_log_number = versions_->NewFileNumber();
+        WritableFile *lfile = NULL;
+        s = env_->NewWritableFile(LogFileName(dbname_, new_log_number), &lfile);
+        if (!s.ok()) {
+          // Avoid chewing through file number space in a tight loop.
+          versions_->ReuseFileNumber(new_log_number);
+          break;
+        }
+        delete log_;
+        delete logfile_;
+        logfile_ = lfile;
+        logfile_number_ = new_log_number;
+        log_ = new log::Writer(lfile);
       }
-      delete log_;
-      delete logfile_;
-      logfile_ = lfile;
-      logfile_number_ = new_log_number;
-      log_ = new log::MockWriter(lfile);
       imm_ = mem_;
       has_imm_.Release_Store(imm_);
       mem_ = new MemTable(internal_comparator_);
@@ -1502,15 +1526,19 @@ Status DB::Open(const Options& options, const std::string& dbname,
    s = impl->Recover(&edit, &save_manifest);
   if (s.ok() && impl->mem_ == NULL) {
     // Create new log and a corresponding memtable.
-    uint64_t new_log_number = impl->versions_->NewFileNumber();
-    WritableFile* lfile;
-    s = options.env->NewWritableFile(LogFileName(dbname, new_log_number),
-                                     &lfile);
+    if (!options.disable_recovery_log) {
+      uint64_t new_log_number = impl->versions_->NewFileNumber();
+      WritableFile *lfile;
+      s = options.env->NewWritableFile(LogFileName(dbname, new_log_number),
+                                       &lfile);
+      if (s.ok()) {
+        edit.SetLogNumber(new_log_number);
+        impl->logfile_ = lfile;
+        impl->logfile_number_ = new_log_number;
+        impl->log_ = new log::Writer(lfile);
+      }
+    }
     if (s.ok()) {
-      edit.SetLogNumber(new_log_number);
-      impl->logfile_ = lfile;
-      impl->logfile_number_ = new_log_number;
-      impl->log_ = new log::MockWriter(lfile);
       impl->mem_ = new MemTable(impl->internal_comparator_);
       impl->mem_->Ref();
     }

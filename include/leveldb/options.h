@@ -113,6 +113,11 @@ struct LEVELDB_EXPORT Options {
   // Default: 16
   int block_restart_interval;
 
+  // disable writing of recovery log during DB::Write() / Put() calls.
+  // This speeds performance but can lead to loss of tens of megabytes
+  // of data if system crashes.
+  bool disable_recovery_log;
+
   // Leveldb will write up to this amount of bytes to a file before
   // switching to a new one.
   // Most clients should leave this parameter alone.  However if your

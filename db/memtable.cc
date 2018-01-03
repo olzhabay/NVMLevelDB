@@ -31,7 +31,7 @@ MemTable::~MemTable() {
 size_t MemTable::ApproximateMemoryUsage() { return arena_.MemoryUsage(); }
 
 int MemTable::KeyComparator::operator()(const char* aptr, const char* bptr)
-    const {
+const {
   // Internal keys are encoded as length-prefixed strings.
   Slice a = GetLengthPrefixedSlice(aptr);
   Slice b = GetLengthPrefixedSlice(bptr);
@@ -101,7 +101,6 @@ void MemTable::Add(SequenceNumber s, ValueType type,
   p += 8;
   p = EncodeVarint32(p, val_size);
   memcpy(p, value.data(), val_size);
-  clflush(buf, internal_key_size);
   assert((p + val_size) - buf == encoded_len);
   table_.Insert(buf);
 }
@@ -124,8 +123,8 @@ bool MemTable::Get(const LookupKey& key, std::string* value, Status* s) {
     uint32_t key_length;
     const char* key_ptr = GetVarint32Ptr(entry, entry+5, &key_length);
     if (comparator_.comparator.user_comparator()->Compare(
-            Slice(key_ptr, key_length - 8),
-            key.user_key()) == 0) {
+        Slice(key_ptr, key_length - 8),
+        key.user_key()) == 0) {
       // Correct user key
       const uint64_t tag = DecodeFixed64(key_ptr + key_length - 8);
       switch (static_cast<ValueType>(tag & 0xff)) {

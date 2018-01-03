@@ -22,7 +22,6 @@
 #include "db/version_edit.h"
 #include "port/port.h"
 #include "port/thread_annotations.h"
-#include "mock_log.h"
 
 namespace leveldb {
 
@@ -177,7 +176,7 @@ class VersionSet {
   // REQUIRES: *mu is held on entry.
   // REQUIRES: no other thread concurrently calls LogAndApply()
   Status LogAndApply(VersionEdit* edit, port::Mutex* mu)
-      EXCLUSIVE_LOCKS_REQUIRED(mu);
+  EXCLUSIVE_LOCKS_REQUIRED(mu);
 
   // Recover the last saved descriptor from persistent storage.
   Status Recover(bool *save_manifest);
@@ -308,7 +307,7 @@ class VersionSet {
 
   // Opened lazily
   WritableFile* descriptor_file_;
-  log::MockWriter* descriptor_log_;
+  log::Writer* descriptor_log_;
   Version dummy_versions_;  // Head of circular doubly-linked list of versions.
   Version* current_;        // == dummy_versions_.prev_
 
@@ -383,7 +382,7 @@ class Compaction {
   size_t grandparent_index_;  // Index in grandparent_starts_
   bool seen_key_;             // Some output key has been seen
   int64_t overlapped_bytes_;  // Bytes of overlap between current output
-                              // and grandparent files
+  // and grandparent files
 
   // State for implementing IsBaseLevelForKey
 
