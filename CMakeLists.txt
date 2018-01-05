@@ -76,7 +76,6 @@ set(LEVEL_DB_FILES
         db/log_reader.h
         db/log_writer.cc
         db/log_writer.h
-        db/mock_log.h
         db/skiplist.h
         db/snapshot.h
         db/memtable.cc
