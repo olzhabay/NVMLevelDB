@@ -25,7 +25,7 @@ Options::Options()
       compression(kSnappyCompression),
       reuse_logs(false),
       filter_policy(NULL),
-      disable_recovery_log(false) {
+      disable_recovery_log(true) {
 }
 
 }  // namespace leveldb
