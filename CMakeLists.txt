@@ -34,6 +34,7 @@ else()
     add_compile_options(
             -Wno-sign-compare
             -std=c++11
+            -O2
     )
 endif()
 
@@ -127,7 +128,9 @@ set(LEVEL_DB_FILES
         util/status.cc
         util/persist.h
         port/port.h
-        port/atomic_pointer.h)
+        port/atomic_pointer.h
+        util/testutil.h
+        util/testutil.cc)
 
 if(WIN32)
     list(APPEND LEVEL_DB_FILES
@@ -162,6 +165,7 @@ set_target_properties(leveldb PROPERTIES PUBLIC_HEADER "include/leveldb/c.h;incl
 INSTALL(TARGETS leveldb ARCHIVE DESTINATION /usr/local/lib PUBLIC_HEADER DESTINATION /usr/local/include/leveldb)
 
 add_executable(leveldbmain main.cc)
-
 target_link_libraries(leveldbmain PUBLIC leveldb)
 
+add_executable(db_bench db/db_bench.cc)
+target_link_libraries(db_bench PUBLIC leveldb)

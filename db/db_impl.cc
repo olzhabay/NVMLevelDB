@@ -150,8 +150,8 @@ DBImpl::~DBImpl() {
   mutex_.Lock();
   shutting_down_.Release_Store(this);  // Any non-NULL value is ok
   // maybe push memory buffer(s) to disk if recovery log disabled
-  if (options_.disable_recovery_log)
-    CompactMemTableSynchronous();
+//  if (options_.disable_recovery_log)
+//    CompactMemTableSynchronous();
 
   while (bg_compaction_scheduled_) {
     bg_cv_.Wait();
