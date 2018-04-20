@@ -34,6 +34,7 @@ static const char* FLAGS_benchmarks =
     "overwrite,"
     "overwritebatch,"
     "readrandom,"
+    "rangequery,"
     "readseq,"
     "fillrand100K,"
     "fillseq100K,"
@@ -402,6 +403,8 @@ class Benchmark {
         reads_ /= 1000;
         Read(RANDOM, 1);
         reads_ = n;
+      } else if (name == Slice("rangequery"))  {
+        RangeQuery();
       } else {
         known = false;
         if (name != Slice()) {  // No error message for empty name
@@ -660,6 +663,38 @@ class Benchmark {
 
     status = sqlite3_finalize(pStmt);
     ErrorCheck(status);
+  }
+
+  void RangeQuery() {
+    int status;
+    int ranges = 10;
+    int range_size = 1000;
+    for (int r = 0; r < ranges; r++) {
+      int k = abs((int)(rand_.Next() % FLAGS_num) - range_size);
+      int l = k + range_size;
+      char begin[100];
+      snprintf(begin, sizeof(begin), "%016d", k);
+      char end[100];
+      snprintf(end, sizeof(end), "%016d", l);
+
+      sqlite3_stmt* pStmt;
+      std::string read_str;
+      read_str
+          .append("SELECT * FROM test ORDER BY key")
+          .append(" WHERE key IN ( ")
+          .append(begin)
+          .append(" , ")
+          .append(end)
+          .append(" )");
+      status = sqlite3_prepare_v2(db_, read_str.c_str(), -1, &pStmt, NULL);
+      ErrorCheck(status);
+      while (SQLITE_ROW == sqlite3_step(pStmt)) {
+        bytes_ += sqlite3_column_bytes(pStmt, 1) + sqlite3_column_bytes(pStmt, 2);
+        FinishedSingleOp();
+      }
+      status = sqlite3_finalize(pStmt);
+      ErrorCheck(status);
+    }
   }
 
 };

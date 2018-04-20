@@ -4,6 +4,7 @@ project(NVMleveldb CXX)
 set(CMAKE_DEBUG_POSTFIX "d")
 
 set(SNAPPY_LIBRARY "")
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 string(REGEX MATCH "clang" CLANG ${CMAKE_CXX_COMPILER})
 
@@ -19,6 +20,11 @@ else(CMAKE_COMPILER_IS_GNUCXX OR CLANG)
 endif(CMAKE_COMPILER_IS_GNUCXX OR CLANG)
 
 include_directories(${Boost_INCLUDE_DIRS}
+        ${CMAKE_CURRENT_SOURCE_DIR}
+        include)
+
+find_package(Numa REQUIRED)
+include_directories(${NUMA_INCLUDE_DIRS}
         ${CMAKE_CURRENT_SOURCE_DIR}
         include)
 
@@ -158,6 +164,7 @@ target_link_libraries(leveldb
         PRIVATE
         ${Boost_LIBRARIES}
         ${Pthread_LIBRARY}
+        ${NUMA_LIBRARY}
         )
 
 set_target_properties(leveldb PROPERTIES PUBLIC_HEADER "include/leveldb/c.h;include/leveldb/cache.h;include/leveldb/comparator.h;include/leveldb/db.h;include/leveldb/dumpfile.h;include/leveldb/env.h;include/leveldb/iterator.h;include/leveldb/filter_policy.h;include/leveldb/iterator.h;include/leveldb/options.h;include/leveldb/slice.h;include/leveldb/status.h;include/leveldb/table.h;include/leveldb/table_builder.h;include/leveldb/write_batch.h;include/leveldb/export.h;")
@@ -169,3 +176,18 @@ target_link_libraries(leveldbmain PUBLIC leveldb)
 
 add_executable(db_bench db/db_bench.cc)
 target_link_libraries(db_bench PUBLIC leveldb)
+
+find_package(SQLite3 REQUIRED)
+include_directories(${SQLITE3_INCLUDE_DIRS}
+        ${CMAKE_CURRENT_SOURCE_DIR}
+        include)
+
+add_executable(sqlite3_bench doc/bench/db_bench_sqlite3.cc)
+target_link_libraries(sqlite3_bench PUBLIC leveldb sqlite3)
+
+find_package(KyotoCabinet REQUIRED)
+include_directories(${KyotoCabinet_INCLUDE_DIRS}
+        ${CMAKE_CURRENT_SOURCE_DIR}
+        include)
+add_executable(kyotodb_bench doc/bench/db_bench_tree_db.cc)
+target_link_libraries(kyotodb_bench PUBLIC leveldb kyotocabinet)

@@ -30,6 +30,7 @@ static const char* FLAGS_benchmarks =
     "fillrandom,"
     "overwrite,"
     "readrandom,"
+    "rangequery,"
     "readseq,"
     "fillrand100K,"
     "fillseq100K,"
@@ -373,6 +374,8 @@ class Benchmark {
         reads_ /= 1000;
         ReadSequential();
         reads_ = n;
+      } else if (name == Slice("rangequery")) {
+        RangeQuery();
       } else {
         known = false;
         if (name != Slice()) {  // No error message for empty name
@@ -475,6 +478,27 @@ class Benchmark {
       snprintf(key, sizeof(key), "%016d", k);
       db_->get(key, &value);
       FinishedSingleOp();
+    }
+  }
+
+  void RangeQuery() {
+    int ranges = 10;
+    int range_size = 1000;
+    for (int r = 0; r < ranges; r++) {
+      int k = abs((int)(rand_.Next() % FLAGS_num) - range_size);
+      int l = k + range_size;
+      char begin[100];
+      snprintf(begin, sizeof(begin), "%016d", k);
+      char end[100];
+      snprintf(end, sizeof(end), "%016d", l);
+      kyotocabinet::DB::Cursor* cur = db_->cursor();
+      cur->jump(begin);
+      std::string ckey, cvalue;
+      while(cur->get(&ckey, &cvalue, true) && cvalue >= end) {
+        bytes_ += ckey.size() + cvalue.size();
+        FinishedSingleOp();
+      }
+      delete cur;
     }
   }
 };
