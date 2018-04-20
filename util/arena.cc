@@ -20,7 +20,7 @@ Arena::~Arena() {
     if (numa_) {
       numa_free(blocks_[i].first, blocks_[i].second);
     } else {
-      delete blocks_[i].first;
+      delete[] blocks_[i].first;
     }
   }
 }
