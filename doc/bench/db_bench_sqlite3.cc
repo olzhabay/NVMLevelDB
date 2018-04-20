@@ -9,6 +9,9 @@
 #include "util/random.h"
 #include "util/testutil.h"
 
+uint64_t clflush_cnt = 0;
+uint64_t WRITE_LATENCY_IN_NS = 1000;
+
 // Comma-separated list of operations to run in the specified order
 //   Actual benchmarks:
 //
